@@ -144,7 +144,7 @@ impl<T> Valid<T> {
     /// This is only available with the `test-mock` feature enabled.
     ///
     /// It goes without saying that this function invalidates all compile-time guarantees. It's
-    /// provided as an "escape hatch", intended for testing. While 
+    /// provided as an "escape hatch", intended for testing. While
     #[cfg(feature = "test-mock")]
     pub fn danger_new_unvalidated(t: T) -> Self {
         Self(t)
@@ -218,25 +218,35 @@ pub trait Validate {
     fn is_valid(&self, ctx: Self::Context<'_>) -> Result<(), Self::Error>;
 
     /// Validate with the given context
-    fn validate_with(self, ctx: Self::Context<'_>) -> Result<Valid<Self>, Self::Error>
+    fn validate_with(self, ctx: Self::Context<'_>) -> Result<Valid<Self>, Failure<Self>>
     where
         Self: Sized,
     {
         match self.is_valid(ctx) {
             Ok(()) => Ok(Valid(self)),
-            Err(e) => Err(e),
+            Err(error) => Err(Failure { value: self, error }),
         }
     }
 
     /// Validate this object, and if successful return a `Valid<Self>` which acts as a "proof of
     /// validity"
     ///
-    /// If validation fails, the error is propagated upwards
-    fn validate(self) -> Result<Valid<Self>, Self::Error>
+    /// If validation fails, 
+    fn validate(self) -> Result<Valid<Self>, Failure<Self>>
     where
         Self: for<'a> Validate<Context<'a> = ()>,
         Self: Sized,
     {
         self.validate_with(())
     }
+}
+
+/// A struct representing a failure to validate a value
+///
+/// It contains both the value that failed validation, as well as the error that caused that error
+pub struct Failure<T: Validate> {
+    /// The value that caused validation to fail
+    pub value: T,
+    /// The error that was generated
+    pub error: <T as Validate>::Error,
 }
