@@ -121,7 +121,12 @@
 //! phone.validate_with(db);
 //! ```
 
-use core::ops::Deref;
+#![no_std]
+
+use core::{
+    fmt::{Debug, Formatter},
+    ops::Deref,
+};
 
 /// A thin wrapper around a value that guarantees that it is "valid"
 ///
@@ -231,7 +236,7 @@ pub trait Validate {
     /// Validate this object, and if successful return a `Valid<Self>` which acts as a "proof of
     /// validity"
     ///
-    /// If validation fails, 
+    /// If validation fails,
     fn validate(self) -> Result<Valid<Self>, Failure<Self>>
     where
         Self: for<'a> Validate<Context<'a> = ()>,
@@ -249,4 +254,17 @@ pub struct Failure<T: Validate> {
     pub value: T,
     /// The error that was generated
     pub error: <T as Validate>::Error,
+}
+
+impl<T> Debug for Failure<T>
+where
+    T: Validate + Debug,
+    T::Error: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Failure")
+            .field("value", &self.value)
+            .field("error", &self.error)
+            .finish()
+    }
 }
